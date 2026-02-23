@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// Section 6.1 — User Model
+// ==========================================
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  avatar    String?
+  phone     String?
+  googleId  String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Education level determines which profile fields are relevant
+  educationLevel EducationLevel
+
+  // Common education fields
+  medium   Medium?  // Sinhala, Tamil, or English
+  subjects String[] // Array of subjects the student studies
+
+  // School fields (Grade 6-11)
+  grade      Int?     // 6, 7, 8, 9, 10, 11
+  schoolName String?
+  city       String?
+
+  // A/L fields (Grade 12-13)
+  stream String? // Science, Commerce, Arts, Technology
+
+  // University fields
+  universityName String?
+  course         String? // e.g., "BSc IT", "Software Engineering"
+  yearOfStudy    Int?    // 1, 2, 3, 4
+
+  // Relations
+  ownedRooms       Room[]
+  sessions         StudySession[]
+  messages         Message[]
+  achievements     UserAchievement[]
+  sentRequests     Friendship[]      @relation("FriendRequester")
+  receivedRequests Friendship[]      @relation("FriendReceiver")
+
+  @@index([educationLevel])
+  @@index([city])
+  @@index([universityName])
+}
+
+// ==========================================
+// Section 6.2 — Room Model
+// ==========================================
+model Room {
+  id             String         @id @default(cuid())
+  name           String
+  subject        String
+  description    String?
+  isPublic       Boolean        @default(true)
+  password       String?
+  maxCapacity    Int            @default(10)
+  educationLevel EducationLevel // Rooms are scoped to education level
+  medium         Medium?        // Optional: room language medium
+  grade          Int?           // For school rooms: which grade
+  stream         String?        // For A/L rooms: which stream
+  ownerId        String
+  createdAt      DateTime       @default(now())
+
+  // Relations
+  owner    User           @relation(fields: [ownerId], references: [id])
+  sessions StudySession[]
+  messages Message[]
+
+  @@index([subject])
+  @@index([isPublic])
+  @@index([ownerId])
+  @@index([educationLevel])
+  @@index([grade])
+}
+
+// ==========================================
+// Section 6.3 — StudySession Model
+// ==========================================
+model StudySession {
+  id                 String    @id @default(cuid())
+  userId             String
+  roomId             String?
+  startTime          DateTime  @default(now())
+  endTime            DateTime?
+  focusMinutes       Int       @default(0)
+  pomodorosCompleted Int       @default(0)
+  subject            String?
+
+  // Relations
+  user User  @relation(fields: [userId], references: [id])
+  room Room? @relation(fields: [roomId], references: [id])
+
+  @@index([userId, startTime])
+  @@index([roomId])
+}
+
+// ==========================================
+// Section 6.4 — Message Model
+// ==========================================
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  userId    String
+  roomId    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+  room Room @relation(fields: [roomId], references: [id])
+
+  @@index([roomId, createdAt])
+}
+
+// ==========================================
+// Section 6.5 — Friendship Model
+// ==========================================
+model Friendship {
+  id          String           @id @default(cuid())
+  requesterId String
+  receiverId  String
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+
+  // Relations
+  requester User @relation("FriendRequester", fields: [requesterId], references: [id])
+  receiver  User @relation("FriendReceiver", fields: [receiverId], references: [id])
+
+  @@unique([requesterId, receiverId])
+}
+
+// ==========================================
+// Section 6.6 — Achievement Models
+// ==========================================
+model Achievement {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String
+  icon        String
+  requirement Int    // minutes required
+
+  // Relations
+  users UserAchievement[]
+}
+
+model UserAchievement {
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  // Relations
+  user        User        @relation(fields: [userId], references: [id])
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+
+  @@id([userId, achievementId])
+}
+
+// ==========================================
+// Enums
+// ==========================================
+enum EducationLevel {
+  SCHOOL  // Grade 6-11
+  AL      // A/L (Grade 12-13)
+  UNI     // University
+}
+
+enum Medium {
+  SINHALA
+  TAMIL
+  ENGLISH
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
