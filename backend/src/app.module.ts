@@ -5,6 +5,9 @@ import { RedisService } from './common/redis.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { RoomsModule } from './rooms/rooms.module';
+import { PresenceModule } from './presence/presence.module';
+import { ChatModule } from './chat/chat.module';
+import { TimerModule } from './timer/timer.module';
 
 @Module({
   imports: [
@@ -12,6 +15,9 @@ import { RoomsModule } from './rooms/rooms.module';
     AuthModule,
     UsersModule,
     RoomsModule,
+    PresenceModule,
+    ChatModule,
+    TimerModule,
   ],
   controllers: [],
   providers: [PrismaService, RedisService],
