@@ -8,6 +8,7 @@ import { RoomsModule } from './rooms/rooms.module';
 import { PresenceModule } from './presence/presence.module';
 import { ChatModule } from './chat/chat.module';
 import { TimerModule } from './timer/timer.module';
+import { LeaderboardModule } from './leaderboard/leaderboard.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { TimerModule } from './timer/timer.module';
     PresenceModule,
     ChatModule,
     TimerModule,
+    LeaderboardModule,
   ],
   controllers: [],
   providers: [PrismaService, RedisService],
