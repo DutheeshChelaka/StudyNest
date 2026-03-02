@@ -143,6 +143,35 @@ class ApiClient {
   async getMyRank(period: string = 'weekly') {
     return this.request<any>(`/leaderboard/me?period=${period}`);
   }
+
+  // Upload file
+  async uploadFile(file: File): Promise<{
+    fileUrl: string;
+    fileName: string;
+    fileType: string;
+    fileSize: number;
+  }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const headers: Record<string, string> = {};
+    if (this.accessToken) {
+      headers['Authorization'] = `Bearer ${this.accessToken}`;
+    }
+
+    const response = await fetch(`${API_URL}/chat/upload`, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Upload failed');
+    }
+
+    return response.json();
+  }
 }
 
 export const api = new ApiClient();
