@@ -27,3 +27,6 @@ redisdata/
 coverage/
 
 *.tsbuildinfo
+
+uploads/*
+!uploads/.gitkeep
