@@ -45,6 +45,7 @@ model User {
   ownedRooms       Room[]
   sessions         StudySession[]
   messages         Message[]
+  reactions    MessageReaction[]
   achievements     UserAchievement[]
   sentRequests     Friendship[]      @relation("FriendRequester")
   receivedRequests Friendship[]      @relation("FriendReceiver")
@@ -110,16 +111,35 @@ model StudySession {
 // ==========================================
 model Message {
   id        String   @id @default(cuid())
-  content   String
+  content   String?
   userId    String
   roomId    String
+  
+  // File/Image attachment
+  fileUrl   String?
+  fileName  String?
+  fileType  String?  // "image" | "document"
+  fileSize  Int?
+  
+  user      User     @relation(fields: [userId], references: [id])
+  room      Room     @relation(fields: [roomId], references: [id])
+  reactions MessageReaction[]
   createdAt DateTime @default(now())
-
-  // Relations
-  user User @relation(fields: [userId], references: [id])
-  room Room @relation(fields: [roomId], references: [id])
-
+  
   @@index([roomId, createdAt])
+}
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  emoji     String   // 👍 ❤️ 😂 ✅ 🔥
+  userId    String
+  messageId String
+  
+  user      User     @relation(fields: [userId], references: [id])
+  message   Message  @relation(fields: [messageId], references: [id])
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, messageId, emoji])
 }
 
 // ==========================================

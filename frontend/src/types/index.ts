@@ -45,12 +45,25 @@ export interface RoomListResponse {
 }
 
 // Message types
+export interface MessageReaction {
+  id: string;
+  emoji: string;
+  userId: string;
+  messageId: string;
+  user: { id: string; name: string };
+}
+
 export interface Message {
   id: string;
-  content: string;
+  content: string | null;
   userId: string;
   roomId: string;
+  fileUrl: string | null;
+  fileName: string | null;
+  fileType: string | null;
+  fileSize: number | null;
   user: { id: string; name: string; avatar: string | null };
+  reactions: MessageReaction[];
   createdAt: string;
 }
 

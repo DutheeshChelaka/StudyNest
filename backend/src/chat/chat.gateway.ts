@@ -6,7 +6,7 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { PrismaService } from '../common/prisma.service';
+import { ChatService } from './chat.service';
 
 @WebSocketGateway({
   cors: {
@@ -18,34 +18,42 @@ export class ChatGateway {
   @WebSocketServer()
   server: Server;
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private chatService: ChatService) {}
 
-  // chat:send — Client sends a message (Section 7)
+  // chat:send — Send a text message or file message
   @SubscribeMessage('chat:send')
   async handleMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { roomId: string; content: string },
+    @MessageBody() payload: {
+      roomId: string;
+      content?: string;
+      fileUrl?: string;
+      fileName?: string;
+      fileType?: string;
+      fileSize?: number;
+    },
   ) {
     const userId = client.data.userId;
-    if (!userId || !payload.roomId || !payload.content) return;
+    if (!userId || !payload.roomId) return;
 
-    // Persist message to PostgreSQL (Section 4.1.5 — requirement 2)
-    const message = await this.prisma.message.create({
-      data: {
-        content: payload.content,
-        userId,
-        roomId: payload.roomId,
-      },
-      include: {
-        user: { select: { id: true, name: true, avatar: true } },
-      },
+    // Must have either content or file
+    if (!payload.content && !payload.fileUrl) return;
+
+    const message = await this.chatService.createMessage({
+      content: payload.content,
+      userId,
+      roomId: payload.roomId,
+      fileUrl: payload.fileUrl,
+      fileName: payload.fileName,
+      fileType: payload.fileType,
+      fileSize: payload.fileSize,
     });
 
-    // Broadcast to all room members (chat:receive)
+    // Broadcast to all room members
     this.server.to(payload.roomId).emit('chat:receive', { message });
   }
 
-  // chat:typing — Typing indicator (Section 7)
+  // chat:typing — Typing indicator
   @SubscribeMessage('chat:typing')
   async handleTyping(
     @ConnectedSocket() client: Socket,
@@ -54,22 +62,39 @@ export class ChatGateway {
     const userId = client.data.userId;
     if (!userId || !payload.roomId) return;
 
-    // Broadcast typing status to room (except sender)
     client.to(payload.roomId).emit('chat:typing_update', {
       userId,
       isTyping: payload.isTyping,
     });
   }
 
-  // Load chat history via REST (last 50 messages)
-  async getChatHistory(roomId: string) {
-    return this.prisma.message.findMany({
-      where: { roomId },
-      orderBy: { createdAt: 'asc' },
-      take: 50,
-      include: {
-        user: { select: { id: true, name: true, avatar: true } },
-      },
+  // chat:react — Add or remove a reaction
+  @SubscribeMessage('chat:react')
+  async handleReaction(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { roomId: string; messageId: string; emoji: string },
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !payload.messageId || !payload.emoji) return;
+
+    const result = await this.chatService.addReaction(
+      userId,
+      payload.messageId,
+      payload.emoji,
+    );
+
+    // Get updated reactions for the message
+    const reactions = await this.chatService.getReactions(payload.messageId);
+
+    // Broadcast updated reactions to all room members
+    this.server.to(payload.roomId).emit('chat:reaction_update', {
+      messageId: payload.messageId,
+      reactions,
     });
+  }
+
+  // Get chat history (called by RoomsGateway)
+  async getChatHistory(roomId: string) {
+    return this.chatService.getChatHistory(roomId);
   }
 }

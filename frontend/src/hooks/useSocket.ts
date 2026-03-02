@@ -6,14 +6,14 @@ import { useRoomStore } from '@/stores/roomStore';
 import { useTimerStore } from '@/stores/timerStore';
 
 export function useSocket() {
-  const { setMembers, addMessage, setMessages, setTypingUser } = useRoomStore();
+  const { setMembers, addMessage, setMessages, setTypingUser, updateMessageReactions } = useRoomStore();
   const { setTimer } = useTimerStore();
 
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
 
-    // Room events (Section 7)
+    // Room events
     socket.on('room:members', (data) => {
       setMembers(data.members);
     });
@@ -26,7 +26,7 @@ export function useSocket() {
       console.log(`👋 ${data.user.name} left the room`);
     });
 
-    // Chat events (Section 7)
+    // Chat events
     socket.on('chat:receive', (data) => {
       addMessage(data.message);
     });
@@ -39,7 +39,12 @@ export function useSocket() {
       setTypingUser(data.userId, data.isTyping);
     });
 
-    // Timer events (Section 7)
+    // Reaction events (new)
+    socket.on('chat:reaction_update', (data) => {
+      updateMessageReactions(data.messageId, data.reactions);
+    });
+
+    // Timer events
     socket.on('timer:tick', (data) => {
       setTimer(data.state);
     });
@@ -57,7 +62,6 @@ export function useSocket() {
       console.log(`🔴 User ${data.userId} went offline`);
     });
 
-    // Cleanup on unmount
     return () => {
       socket.off('room:members');
       socket.off('room:user_joined');
@@ -65,10 +69,11 @@ export function useSocket() {
       socket.off('chat:receive');
       socket.off('chat:history');
       socket.off('chat:typing_update');
+      socket.off('chat:reaction_update');
       socket.off('timer:tick');
       socket.off('timer:complete');
       socket.off('presence:online');
       socket.off('presence:offline');
     };
-  }, [setMembers, addMessage, setMessages, setTypingUser, setTimer]);
+  }, [setMembers, addMessage, setMessages, setTypingUser, updateMessageReactions, setTimer]);
 }
