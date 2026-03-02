@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Room, Message } from '@/types';
+import { Room, Message, MessageReaction } from '@/types';
 
 interface RoomState {
   currentRoom: Room | null;
@@ -13,6 +13,7 @@ interface RoomState {
   addMessage: (message: Message) => void;
   setMessages: (messages: Message[]) => void;
   setTypingUser: (userId: string, isTyping: boolean) => void;
+  updateMessageReactions: (messageId: string, reactions: MessageReaction[]) => void;
   clearRoom: () => void;
 }
 
@@ -36,6 +37,13 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       typingUsers: isTyping
         ? [...state.typingUsers.filter((id) => id !== userId), userId]
         : state.typingUsers.filter((id) => id !== userId),
+    })),
+
+  updateMessageReactions: (messageId, reactions) =>
+    set((state) => ({
+      messages: state.messages.map((msg) =>
+        msg.id === messageId ? { ...msg, reactions } : msg,
+      ),
     })),
 
   clearRoom: () =>
