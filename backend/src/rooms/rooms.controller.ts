@@ -15,11 +15,12 @@ import { RoomsService } from './rooms.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MatchingService } from '../matching/matching.service';
 
 @Controller('rooms')
 @UseGuards(JwtAuthGuard)
 export class RoomsController {
-  constructor(private roomsService: RoomsService) {}
+  constructor(private roomsService: RoomsService,private matchingService: MatchingService) {}
 
   // POST /rooms — Create a new room
   @Post()
@@ -49,7 +50,16 @@ export class RoomsController {
       search,
     });
   }
-
+// GET /rooms/quick-join — Smart room matching using Priority Queue
+  @Get('quick-join')
+  @UseGuards(JwtAuthGuard)
+  async quickJoin(@Req() req: any) {
+    const bestRoom = await this.matchingService.findBestRoom(req.user.id);
+    if (!bestRoom) {
+      return { message: 'No suitable rooms found. Try creating one!' };
+    }
+    return bestRoom;
+  }
   // GET /rooms/:id — Get room details
   @Get(':id')
   async findById(@Param('id') id: string) {

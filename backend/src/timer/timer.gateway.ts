@@ -8,6 +8,8 @@ import {
 import { Server, Socket } from 'socket.io';
 import { RedisService } from '../common/redis.service';
 import { PrismaService } from '../common/prisma.service';
+import { LeaderboardService } from '../leaderboard/leaderboard.service';
+import { AchievementService } from '../leaderboard/achievement.service';
 
 @WebSocketGateway({
   cors: {
@@ -25,9 +27,11 @@ export class TimerGateway {
   constructor(
     private redis: RedisService,
     private prisma: PrismaService,
+    private leaderboardService: LeaderboardService,
+    private achievementService: AchievementService,
   ) {}
 
-  // timer:start — Owner starts the Pomodoro (Section 7)
+  // timer:start — Owner starts the Pomodoro
   @SubscribeMessage('timer:start')
   async handleStart(
     @ConnectedSocket() client: Socket,
@@ -54,10 +58,10 @@ export class TimerGateway {
     // Don't start if already running
     if (this.timerIntervals.has(roomId)) return;
 
-    const focusDuration = payload.focusDuration || 1500; // 25 min default
-    const breakDuration = payload.breakDuration || 300;  // 5 min default
+    const focusDuration = payload.focusDuration || 1500;
+    const breakDuration = payload.breakDuration || 300;
 
-    // Create timer state in Redis (Section 4.1.4 — Redis Key Structure)
+    // Create timer state in Redis
     const timerState = {
       remaining: focusDuration,
       phase: 'focus',
@@ -82,7 +86,7 @@ export class TimerGateway {
     console.log(`⏱️ Timer started in room ${roomId}`);
   }
 
-  // timer:pause — Owner pauses the timer (Section 7)
+  // timer:pause — Owner pauses the timer
   @SubscribeMessage('timer:pause')
   async handlePause(
     @ConnectedSocket() client: Socket,
@@ -93,16 +97,13 @@ export class TimerGateway {
 
     const { roomId } = payload;
 
-    // Verify owner
     const room = await this.prisma.room.findUnique({
       where: { id: roomId },
     });
     if (!room || room.ownerId !== userId) return;
 
-    // Stop the interval
     this.stopInterval(roomId);
 
-    // Update Redis state
     const timerData = await this.redis.get(`timer:${roomId}`);
     if (!timerData) return;
 
@@ -110,7 +111,6 @@ export class TimerGateway {
     timerState.isRunning = false;
     await this.redis.set(`timer:${roomId}`, JSON.stringify(timerState));
 
-    // Broadcast paused state
     this.server.to(roomId).emit('timer:tick', {
       remaining: timerState.remaining,
       state: timerState,
@@ -130,13 +130,11 @@ export class TimerGateway {
 
     const { roomId } = payload;
 
-    // Verify owner
     const room = await this.prisma.room.findUnique({
       where: { id: roomId },
     });
     if (!room || room.ownerId !== userId) return;
 
-    // Don't resume if already running
     if (this.timerIntervals.has(roomId)) return;
 
     const timerData = await this.redis.get(`timer:${roomId}`);
@@ -162,13 +160,11 @@ export class TimerGateway {
 
     const { roomId } = payload;
 
-    // Verify owner
     const room = await this.prisma.room.findUnique({
       where: { id: roomId },
     });
     if (!room || room.ownerId !== userId) return;
 
-    // Stop interval and clear state
     this.stopInterval(roomId);
     await this.redis.del(`timer:${roomId}`);
 
@@ -180,7 +176,7 @@ export class TimerGateway {
     console.log(`🔄 Timer reset in room ${roomId}`);
   }
 
-  // Server-side tick interval (Section 4.1.4 — design point 2)
+  // Server-side tick interval
   private startInterval(roomId: string) {
     const interval = setInterval(async () => {
       const timerData = await this.redis.get(`timer:${roomId}`);
@@ -191,21 +187,18 @@ export class TimerGateway {
 
       const timerState = JSON.parse(timerData);
 
-      // Decrement remaining time
       timerState.remaining -= 1;
 
       if (timerState.remaining <= 0) {
-        // Timer completed — handle phase transition
         await this.handlePhaseComplete(roomId, timerState);
       } else {
-        // Save updated state and broadcast tick
         await this.redis.set(`timer:${roomId}`, JSON.stringify(timerState));
         this.server.to(roomId).emit('timer:tick', {
           remaining: timerState.remaining,
           state: timerState,
         });
       }
-    }, 1000); // Every second
+    }, 1000);
 
     this.timerIntervals.set(roomId, interval);
   }
@@ -218,7 +211,7 @@ export class TimerGateway {
     }
   }
 
-  // Handle focus/break completion (Section 4.1.4 — design point 4)
+  // Handle focus/break completion
   private async handlePhaseComplete(roomId: string, timerState: any) {
     if (timerState.phase === 'focus') {
       // Focus completed — log the session to PostgreSQL
@@ -229,6 +222,7 @@ export class TimerGateway {
       const focusMinutes = Math.floor(timerState.focusDuration / 60);
 
       for (const memberId of memberIds) {
+        // Log study session
         await this.prisma.studySession.create({
           data: {
             userId: memberId,
@@ -239,6 +233,18 @@ export class TimerGateway {
             endTime: new Date(),
           },
         });
+
+        // Update leaderboard
+        await this.leaderboardService.addFocusTime(memberId, focusMinutes);
+
+        // Check and award achievements
+        const newAchievements = await this.achievementService.checkAndAward(memberId);
+        if (newAchievements.length > 0) {
+          this.server.to(roomId).emit('achievement:unlocked', {
+            userId: memberId,
+            achievements: newAchievements,
+          });
+        }
       }
 
       // Broadcast completion
