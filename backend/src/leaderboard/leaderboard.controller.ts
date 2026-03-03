@@ -8,11 +8,13 @@ import {
 import { Request } from 'express';
 import { LeaderboardService } from './leaderboard.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AchievementService } from './achievement.service';
 
 @Controller('leaderboard')
 @UseGuards(JwtAuthGuard)
 export class LeaderboardController {
-  constructor(private leaderboardService: LeaderboardService) {}
+  constructor(private leaderboardService: LeaderboardService,  private achievementService: AchievementService,
+) {}
 
   // GET /leaderboard?period=daily&limit=10
   @Get()
@@ -43,5 +45,12 @@ export class LeaderboardController {
       : 'weekly';
 
     return this.leaderboardService.getUserRank(user.id, validPeriod);
+  }
+
+  // GET /leaderboard/achievements — Get current user's achievements
+  @Get('achievements')
+  @UseGuards(JwtAuthGuard)
+  async getAchievements(@Req() req: any) {
+    return this.achievementService.getUserAchievements(req.user.id);
   }
 }
