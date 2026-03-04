@@ -9,6 +9,7 @@ import { PresenceModule } from './presence/presence.module';
 import { ChatModule } from './chat/chat.module';
 import { TimerModule } from './timer/timer.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { SearchModule } from './search/search.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
     ChatModule,
     TimerModule,
     LeaderboardModule,
+    SearchModule,
   ],
   controllers: [],
   providers: [PrismaService, RedisService],
