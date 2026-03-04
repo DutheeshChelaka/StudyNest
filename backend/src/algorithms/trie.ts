@@ -6,7 +6,7 @@
  * where m = word length, n = number of matches
  */
 
-interface TrieNodeData {
+export interface TrieNodeData {
   id: string;
   displayName: string;
   popularity: number;

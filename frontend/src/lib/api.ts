@@ -92,6 +92,11 @@ class ApiClient {
     return this.request<any[]>(`/users/search?q=${query}`);
   }
 
+  // Search autocomplete (Trie-powered)
+  async searchAutocomplete(query: string, type: string = 'all') {
+    return this.request<any>(`/search/autocomplete?q=${encodeURIComponent(query)}&type=${type}`);
+  }
+
   // Room endpoints
   async getRooms(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
