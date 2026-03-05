@@ -10,6 +10,7 @@ import { ChatModule } from './chat/chat.module';
 import { TimerModule } from './timer/timer.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { SearchModule } from './search/search.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { SearchModule } from './search/search.module';
     TimerModule,
     LeaderboardModule,
     SearchModule,
+    AiModule,
   ],
   controllers: [],
   providers: [PrismaService, RedisService],
