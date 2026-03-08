@@ -177,6 +177,51 @@ class ApiClient {
 
     return response.json();
   }
+
+  // AI Study Coach endpoints
+  async uploadStudyDocument(file: File, subject?: string) {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (subject) formData.append('subject', subject);
+
+    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const response = await fetch(`${API}/ai/upload`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+      },
+      body: formData,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || 'Upload failed');
+    }
+    return response.json();
+  }
+
+  async getStudyDocuments() {
+    return this.request<any[]>('/ai/documents');
+  }
+
+  async generateQuiz(options: { topic?: string; documentId?: string; numQuestions?: number; difficulty?: string }) {
+    return this.request<any>('/ai/quiz', {
+      method: 'POST',
+      body: JSON.stringify(options),
+    });
+  }
+
+  async submitQuiz(quizId: string, answers: number[]) {
+    return this.request<any>('/ai/quiz/submit', {
+      method: 'POST',
+      body: JSON.stringify({ quizId, answers }),
+    });
+  }
+
+  async getStudyProgress() {
+    return this.request<any>('/ai/progress');
+  }
 }
 
 export const api = new ApiClient();
