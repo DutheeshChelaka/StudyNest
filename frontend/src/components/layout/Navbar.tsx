@@ -27,6 +27,7 @@ export default function Navbar() {
               <Link href="/dashboard" className="text-gray-300 hover:text-white transition">
                 Dashboard
               </Link>
+              <Link href="/ai" className="text-gray-400 hover:text-white transition text-sm">AI Coach</Link>
             </div>
           )}
 
