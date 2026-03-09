@@ -19,47 +19,71 @@ export function useSocket() {
     });
 
     socket.on('room:user_joined', (data) => {
-      console.log(`📚 ${data.user.name} joined the room`);
+      if (data?.user?.name) {
+        console.log(`📚 ${data.user.name} joined the room`);
+      }
+      // Re-request updated member list
+      // The server already sends room:members after join, so this is just a safety log
     });
 
     socket.on('room:user_left', (data) => {
-      console.log(`👋 ${data.user.name} left the room`);
+      if (data?.user?.name) {
+        console.log(`👋 ${data.user.name} left the room`);
+      }
+      // The server sends updated room:members after leave
     });
 
     // Chat events
     socket.on('chat:receive', (data) => {
-      addMessage(data.message);
+      if (data?.message) {
+        addMessage(data.message);
+      }
     });
 
     socket.on('chat:history', (data) => {
-      setMessages(data.messages);
+      if (data?.messages) {
+        setMessages(data.messages);
+      }
     });
 
     socket.on('chat:typing_update', (data) => {
-      setTypingUser(data.userId, data.isTyping);
+      if (data?.userId !== undefined) {
+        setTypingUser(data.userId, data.isTyping);
+      }
     });
 
-    // Reaction events (new)
+    // Reaction events
     socket.on('chat:reaction_update', (data) => {
-      updateMessageReactions(data.messageId, data.reactions);
+      if (data?.messageId && data?.reactions) {
+        updateMessageReactions(data.messageId, data.reactions);
+      }
     });
 
     // Timer events
     socket.on('timer:tick', (data) => {
-      setTimer(data.state);
+      if (data?.state) {
+        setTimer(data.state);
+      }
     });
 
     socket.on('timer:complete', (data) => {
-      console.log(`⏱️ ${data.type} completed!`);
+      console.log(`⏱️ ${data?.type} completed!`);
+    });
+
+    // Achievement events
+    socket.on('achievement:unlocked', (data) => {
+      if (data?.achievements) {
+        console.log(`🏆 Achievements unlocked: ${data.achievements.join(', ')}`);
+      }
     });
 
     // Presence events
     socket.on('presence:online', (data) => {
-      console.log(`🟢 User ${data.userId} is ${data.status}`);
+      // Silently handle
     });
 
     socket.on('presence:offline', (data) => {
-      console.log(`🔴 User ${data.userId} went offline`);
+      // Silently handle
     });
 
     return () => {
@@ -72,6 +96,7 @@ export function useSocket() {
       socket.off('chat:reaction_update');
       socket.off('timer:tick');
       socket.off('timer:complete');
+      socket.off('achievement:unlocked');
       socket.off('presence:online');
       socket.off('presence:offline');
     };
