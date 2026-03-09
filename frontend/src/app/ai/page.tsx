@@ -25,18 +25,91 @@ interface QuizResult {
   topic: string;
 }
 
+function IconUpload() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+    </svg>
+  );
+}
+
+function IconBrain() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+    </svg>
+  );
+}
+
+function IconChart() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+    </svg>
+  );
+}
+
+function IconFile() {
+  return (
+    <svg className="w-5 h-5 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  );
+}
+
+function IconCheck() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+    </svg>
+  );
+}
+
+function IconX() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function IconArrowLeft() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+    </svg>
+  );
+}
+
+function IconArrowRight() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  );
+}
+
+function IconChevron() {
+  return (
+    <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+
+const inputClass = "w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all duration-200";
+const selectClass = "w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all duration-200 appearance-none pr-9";
+
 export default function AiStudyCoachPage() {
   const router = useRouter();
   const { user } = useAuthStore();
 
   const [activeTab, setActiveTab] = useState<Tab>('upload');
 
-  // Upload state
-  const [documents, setDocuments] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<Record<string, unknown>[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadSubject, setUploadSubject] = useState('');
 
-  // Quiz state
   const [quizState, setQuizState] = useState<QuizState>('idle');
   const [quizTopic, setQuizTopic] = useState('');
   const [quizDocId, setQuizDocId] = useState('');
@@ -46,17 +119,13 @@ export default function AiStudyCoachPage() {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [answers, setAnswers] = useState<number[]>([]);
   const [currentQ, setCurrentQ] = useState(0);
-  const [results, setResults] = useState<any>(null);
+  const [results, setResults] = useState<Record<string, unknown> | null>(null);
 
-  // Progress state
-  const [progress, setProgress] = useState<any>(null);
+  const [progress, setProgress] = useState<Record<string, unknown> | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      router.push('/');
-      return;
-    }
+    if (!user) { router.push('/'); return; }
     loadDocuments();
   }, [user]);
 
@@ -81,29 +150,25 @@ export default function AiStudyCoachPage() {
     }
   };
 
-  // Handle file upload
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploading(true);
     try {
       await api.uploadStudyDocument(file, uploadSubject || undefined);
       setUploadSubject('');
-      // Poll for processing status
       setTimeout(() => loadDocuments(), 2000);
       setTimeout(() => loadDocuments(), 5000);
       setTimeout(() => loadDocuments(), 10000);
       loadDocuments();
-    } catch (err: any) {
-      alert(err.message || 'Upload failed');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUploading(false);
       if (e.target) e.target.value = '';
     }
   };
 
-  // Generate quiz
   const handleGenerateQuiz = async () => {
     setQuizState('loading');
     try {
@@ -119,20 +184,18 @@ export default function AiStudyCoachPage() {
       setCurrentQ(0);
       setResults(null);
       setQuizState('active');
-    } catch (err: any) {
-      alert(err.message || 'Failed to generate quiz');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to generate quiz');
       setQuizState('idle');
     }
   };
 
-  // Select answer
   const selectAnswer = (questionIndex: number, optionIndex: number) => {
     const newAnswers = [...answers];
     newAnswers[questionIndex] = optionIndex;
     setAnswers(newAnswers);
   };
 
-  // Submit quiz
   const handleSubmitQuiz = async () => {
     if (answers.some((a) => a === -1)) {
       alert('Please answer all questions before submitting');
@@ -143,13 +206,12 @@ export default function AiStudyCoachPage() {
       const data = await api.submitQuiz(quizId, answers);
       setResults(data);
       setQuizState('submitted');
-    } catch (err: any) {
-      alert(err.message || 'Failed to submit quiz');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to submit quiz');
       setQuizState('active');
     }
   };
 
-  // Reset quiz
   const resetQuiz = () => {
     setQuizState('idle');
     setQuestions([]);
@@ -161,61 +223,68 @@ export default function AiStudyCoachPage() {
 
   const readyDocs = documents.filter((d) => d.status === 'ready');
 
+  const tabs = [
+    { key: 'upload' as Tab, label: 'Documents', Icon: IconUpload },
+    { key: 'quiz' as Tab, label: 'Quiz', Icon: IconBrain },
+    { key: 'progress' as Tab, label: 'Progress', Icon: IconChart },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-[#FAFAFA]">
       <Navbar />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">AI Study Coach</h1>
-          <p className="text-gray-400 mt-1">Upload your notes, generate quizzes, and track your mastery</p>
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">AI Study Coach</h1>
+          <p className="text-gray-400 mt-1">Upload your notes, generate quizzes, and track your mastery.</p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-8">
-          {(['upload', 'quiz', 'progress'] as Tab[]).map((tab) => (
+        <div className="flex gap-1 bg-gray-100 rounded-2xl p-1 w-fit mb-8">
+          {tabs.map(({ key, label, Icon }) => (
             <button
-              key={tab}
+              key={key}
               onClick={() => {
-                setActiveTab(tab);
-                if (tab === 'progress') loadProgress();
+                setActiveTab(key);
+                if (key === 'progress') loadProgress();
               }}
-              className={`px-5 py-2.5 rounded-lg font-medium text-sm transition ${
-                activeTab === tab
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                activeTab === key
+                  ? 'bg-white text-violet-700 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-700'
               }`}
             >
-              {tab === 'upload' && '📄 Documents'}
-              {tab === 'quiz' && '🧠 Quiz'}
-              {tab === 'progress' && '📊 Progress'}
+              <Icon />
+              {label}
             </button>
           ))}
         </div>
 
-        {/* ==================== UPLOAD TAB ==================== */}
+        {/* ── UPLOAD TAB ── */}
         {activeTab === 'upload' && (
-          <div className="space-y-6">
+          <div className="space-y-5">
+
             {/* Upload Card */}
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">Upload Study Material</h2>
-              <p className="text-gray-400 text-sm mb-4">
-                Upload PDF or text files. The AI will process and index them for quiz generation.
-              </p>
+            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+              <h2 className="text-base font-bold text-gray-900 mb-1">Upload Study Material</h2>
+              <p className="text-gray-400 text-sm mb-5">Upload PDF or text files. The AI will index them for quiz generation.</p>
 
               <div className="flex gap-3 items-end">
                 <div className="flex-1">
-                  <label className="text-gray-400 text-xs mb-1 block">Subject (optional)</label>
+                  <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Subject (optional)</label>
                   <input
                     type="text"
                     value={uploadSubject}
                     onChange={(e) => setUploadSubject(e.target.value)}
                     placeholder="e.g. Mathematics, ICT, Science"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 text-sm"
+                    className={inputClass}
                   />
                 </div>
-                <label className={`cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                  {uploading ? 'Uploading...' : '📎 Upload File'}
+                <label className={`inline-flex items-center gap-2 cursor-pointer bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 active:scale-95 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  <IconUpload />
+                  {uploading ? 'Uploading...' : 'Upload File'}
                   <input
                     type="file"
                     onChange={handleUpload}
@@ -228,33 +297,46 @@ export default function AiStudyCoachPage() {
             </div>
 
             {/* Documents List */}
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">Your Documents ({documents.length})</h2>
+            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+              <h2 className="text-base font-bold text-gray-900 mb-5">
+                Your Documents
+                <span className="ml-2 text-sm font-normal text-gray-400">({documents.length})</span>
+              </h2>
 
               {documents.length === 0 ? (
-                <p className="text-gray-500 text-sm text-center py-8">No documents uploaded yet. Upload your study notes to get started!</p>
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <IconFile />
+                  </div>
+                  <p className="text-gray-500 font-medium text-sm">No documents yet</p>
+                  <p className="text-gray-400 text-xs mt-1">Upload your study notes to get started.</p>
+                </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {documents.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between bg-gray-800 rounded-lg p-4">
+                    <div key={doc.id as string} className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-xl p-4">
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl">{doc.fileName?.endsWith('.pdf') ? '📕' : '📄'}</span>
+                        <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <IconFile />
+                        </div>
                         <div>
-                          <p className="text-white text-sm font-medium">{doc.fileName}</p>
-                          <p className="text-gray-500 text-xs">
-                            {doc.subject && `${doc.subject} · `}
-                            {doc.totalChunks} chunks · {new Date(doc.createdAt).toLocaleDateString()}
+                          <p className="text-gray-900 text-sm font-semibold">{doc.fileName as string}</p>
+                          <p className="text-gray-400 text-xs mt-0.5">
+                            {doc.subject ? `${doc.subject as string} · ` : ''}
+                            {doc.totalChunks as number} chunks · {new Date(doc.createdAt as string).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
-                      <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-                        doc.status === 'ready' ? 'bg-green-900/50 text-green-400' :
-                        doc.status === 'processing' ? 'bg-yellow-900/50 text-yellow-400' :
-                        'bg-red-900/50 text-red-400'
+                      <span className={`text-xs px-3 py-1 rounded-full font-semibold flex-shrink-0 ${
+                        doc.status === 'ready'
+                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                          : doc.status === 'processing'
+                          ? 'bg-amber-50 text-amber-600 border border-amber-200'
+                          : 'bg-rose-50 text-rose-600 border border-rose-200'
                       }`}>
-                        {doc.status === 'ready' && '✅ Ready'}
-                        {doc.status === 'processing' && '⏳ Processing'}
-                        {doc.status === 'failed' && '❌ Failed'}
+                        {doc.status === 'ready' && 'Ready'}
+                        {doc.status === 'processing' && 'Processing...'}
+                        {doc.status === 'failed' && 'Failed'}
                       </span>
                     </div>
                   ))}
@@ -264,79 +346,85 @@ export default function AiStudyCoachPage() {
           </div>
         )}
 
-        {/* ==================== QUIZ TAB ==================== */}
+        {/* ── QUIZ TAB ── */}
         {activeTab === 'quiz' && (
-          <div className="space-y-6">
+          <div className="space-y-5">
+
             {quizState === 'idle' && (
-              <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-                <h2 className="text-lg font-semibold text-white mb-4">Generate Quiz</h2>
+              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+                <h2 className="text-base font-bold text-gray-900 mb-5">Generate Quiz</h2>
 
                 {readyDocs.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-400 mb-3">No documents ready for quizzing.</p>
-                    <button onClick={() => setActiveTab('upload')} className="text-indigo-400 hover:text-indigo-300 text-sm">
-                      → Upload study materials first
+                  <div className="text-center py-10">
+                    <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                      <IconBrain />
+                    </div>
+                    <p className="text-gray-500 font-medium text-sm mb-2">No documents ready</p>
+                    <button
+                      onClick={() => setActiveTab('upload')}
+                      className="text-violet-600 hover:text-violet-700 text-sm font-semibold"
+                    >
+                      Upload study materials first
                     </button>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     <div>
-                      <label className="text-gray-400 text-xs mb-1 block">Select Document</label>
-                      <select
-                        value={quizDocId}
-                        onChange={(e) => setQuizDocId(e.target.value)}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 text-sm"
-                      >
-                        <option value="">All documents</option>
-                        {readyDocs.map((doc) => (
-                          <option key={doc.id} value={doc.id}>{doc.fileName} {doc.subject ? `(${doc.subject})` : ''}</option>
-                        ))}
-                      </select>
+                      <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Select Document</label>
+                      <div className="relative">
+                        <select value={quizDocId} onChange={(e) => setQuizDocId(e.target.value)} className={selectClass}>
+                          <option value="">All documents</option>
+                          {readyDocs.map((doc) => (
+                            <option key={doc.id as string} value={doc.id as string}>
+                              {doc.fileName as string}{doc.subject ? ` (${doc.subject as string})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <IconChevron />
+                      </div>
                     </div>
 
                     <div>
-                      <label className="text-gray-400 text-xs mb-1 block">Topic (optional)</label>
+                      <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Topic (optional)</label>
                       <input
                         type="text"
                         value={quizTopic}
                         onChange={(e) => setQuizTopic(e.target.value)}
                         placeholder="e.g. Algebra, Networking, Data Types"
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 text-sm"
+                        className={inputClass}
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-gray-400 text-xs mb-1 block">Difficulty</label>
-                        <select
-                          value={quizDifficulty}
-                          onChange={(e) => setQuizDifficulty(e.target.value)}
-                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 text-sm"
-                        >
-                          <option value="easy">Easy</option>
-                          <option value="medium">Medium</option>
-                          <option value="hard">Hard</option>
-                        </select>
+                        <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Difficulty</label>
+                        <div className="relative">
+                          <select value={quizDifficulty} onChange={(e) => setQuizDifficulty(e.target.value)} className={selectClass}>
+                            <option value="easy">Easy</option>
+                            <option value="medium">Medium</option>
+                            <option value="hard">Hard</option>
+                          </select>
+                          <IconChevron />
+                        </div>
                       </div>
                       <div>
-                        <label className="text-gray-400 text-xs mb-1 block">Questions</label>
-                        <select
-                          value={numQuestions}
-                          onChange={(e) => setNumQuestions(parseInt(e.target.value))}
-                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 text-sm"
-                        >
-                          <option value={3}>3 questions</option>
-                          <option value={5}>5 questions</option>
-                          <option value={10}>10 questions</option>
-                        </select>
+                        <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Questions</label>
+                        <div className="relative">
+                          <select value={numQuestions} onChange={(e) => setNumQuestions(parseInt(e.target.value))} className={selectClass}>
+                            <option value={3}>3 questions</option>
+                            <option value={5}>5 questions</option>
+                            <option value={10}>10 questions</option>
+                          </select>
+                          <IconChevron />
+                        </div>
                       </div>
                     </div>
 
                     <button
                       onClick={handleGenerateQuiz}
-                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-medium transition"
+                      className="w-full bg-violet-600 hover:bg-violet-700 text-white py-3 rounded-xl font-bold text-sm transition-all duration-200 hover:shadow-lg hover:shadow-violet-200 active:scale-[0.98]"
                     >
-                      🧠 Generate Quiz
+                      Generate Quiz
                     </button>
                   </div>
                 )}
@@ -344,48 +432,57 @@ export default function AiStudyCoachPage() {
             )}
 
             {quizState === 'loading' && (
-              <div className="bg-gray-900 border border-gray-800 rounded-xl p-12 text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mx-auto mb-4"></div>
-                <p className="text-gray-400">AI is generating your quiz...</p>
-                <p className="text-gray-600 text-xs mt-1">This may take 10-15 seconds</p>
+              <div className="bg-white border border-gray-100 rounded-2xl p-16 text-center shadow-sm">
+                <div className="w-12 h-12 border-2 border-violet-200 border-t-violet-600 rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-gray-700 font-semibold">Generating your quiz...</p>
+                <p className="text-gray-400 text-xs mt-1">This may take 10–15 seconds</p>
               </div>
             )}
 
             {quizState === 'active' && questions.length > 0 && (
               <div className="space-y-4">
-                {/* Progress bar */}
-                <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-                  <div className="flex justify-between text-sm text-gray-400 mb-2">
-                    <span>Question {currentQ + 1} of {questions.length}</span>
+
+                {/* Progress */}
+                <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+                  <div className="flex justify-between text-xs text-gray-400 mb-2">
+                    <span className="font-semibold text-gray-600">Question {currentQ + 1} of {questions.length}</span>
                     <span>{answers.filter((a) => a !== -1).length}/{questions.length} answered</span>
                   </div>
-                  <div className="w-full bg-gray-800 rounded-full h-2">
+                  <div className="w-full bg-gray-100 rounded-full h-2">
                     <div
-                      className="bg-indigo-600 rounded-full h-2 transition-all"
+                      className="bg-violet-600 rounded-full h-2 transition-all duration-300"
                       style={{ width: `${((currentQ + 1) / questions.length) * 100}%` }}
-                    ></div>
+                    />
                   </div>
                 </div>
 
-                {/* Question Card */}
-                <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+                {/* Question */}
+                <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
                   {questions[currentQ].topic && (
-                    <span className="text-indigo-400 text-xs font-medium mb-2 block">{questions[currentQ].topic}</span>
+                    <span className="inline-block text-xs font-semibold text-violet-600 bg-violet-50 px-3 py-1 rounded-full mb-4">
+                      {questions[currentQ].topic}
+                    </span>
                   )}
-                  <h3 className="text-white text-lg font-medium mb-6">{questions[currentQ].question}</h3>
+                  <h3 className="text-gray-900 text-base font-bold mb-6 leading-relaxed">
+                    {questions[currentQ].question}
+                  </h3>
 
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {questions[currentQ].options.map((option, optIdx) => (
                       <button
                         key={optIdx}
                         onClick={() => selectAnswer(currentQ, optIdx)}
-                        className={`w-full text-left px-5 py-3.5 rounded-lg border transition text-sm ${
+                        className={`w-full text-left px-4 py-3.5 rounded-xl border text-sm font-medium transition-all duration-150 ${
                           answers[currentQ] === optIdx
-                            ? 'border-indigo-500 bg-indigo-600/20 text-white'
-                            : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-gray-600 hover:bg-gray-750'
+                            ? 'border-violet-500 bg-violet-50 text-violet-800'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-violet-300 hover:bg-violet-50/50'
                         }`}
                       >
-                        <span className="font-medium mr-3 text-gray-500">{String.fromCharCode(65 + optIdx)}.</span>
+                        <span className={`inline-flex items-center justify-center w-6 h-6 rounded-lg text-xs font-bold mr-3 ${
+                          answers[currentQ] === optIdx ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          {String.fromCharCode(65 + optIdx)}
+                        </span>
                         {option}
                       </button>
                     ))}
@@ -397,25 +494,28 @@ export default function AiStudyCoachPage() {
                   <button
                     onClick={() => setCurrentQ(Math.max(0, currentQ - 1))}
                     disabled={currentQ === 0}
-                    className="px-5 py-2.5 bg-gray-800 text-gray-300 rounded-lg text-sm disabled:opacity-30 hover:bg-gray-700 transition"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold disabled:opacity-30 hover:bg-gray-50 transition-all duration-150"
                   >
-                    ← Previous
+                    <IconArrowLeft />
+                    Previous
                   </button>
 
                   {currentQ < questions.length - 1 ? (
                     <button
                       onClick={() => setCurrentQ(currentQ + 1)}
-                      className="px-5 py-2.5 bg-gray-800 text-gray-300 rounded-lg text-sm hover:bg-gray-700 transition"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all duration-150"
                     >
-                      Next →
+                      Next
+                      <IconArrowRight />
                     </button>
                   ) : (
                     <button
                       onClick={handleSubmitQuiz}
                       disabled={answers.some((a) => a === -1)}
-                      className="px-6 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition"
+                      className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-xl text-sm font-bold transition-all duration-150 active:scale-95"
                     >
-                      ✅ Submit Quiz
+                      <IconCheck />
+                      Submit Quiz
                     </button>
                   )}
                 </div>
@@ -423,54 +523,65 @@ export default function AiStudyCoachPage() {
             )}
 
             {quizState === 'submitted' && results && (
-              <div className="space-y-6">
-                {/* Score Card */}
-                <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
-                  <div className={`text-6xl font-bold mb-2 ${
-                    results.percentage >= 80 ? 'text-green-400' :
-                    results.percentage >= 50 ? 'text-yellow-400' :
-                    'text-red-400'
+              <div className="space-y-5">
+
+                {/* Score */}
+                <div className="bg-white border border-gray-100 rounded-2xl p-10 text-center shadow-sm">
+                  <div className={`text-7xl font-extrabold mb-2 tracking-tight ${
+                    (results.percentage as number) >= 80 ? 'text-emerald-500' :
+                    (results.percentage as number) >= 50 ? 'text-amber-500' : 'text-rose-500'
                   }`}>
-                    {results.percentage}%
+                    {results.percentage as number}%
                   </div>
-                  <p className="text-gray-400">
-                    You got {results.score} out of {results.totalQuestions} correct
+                  <p className="text-gray-500 text-sm">
+                    You got <span className="font-bold text-gray-900">{results.score as number}</span> out of <span className="font-bold text-gray-900">{results.totalQuestions as number}</span> correct
                   </p>
-                  <div className="flex gap-3 justify-center mt-6">
+                  <div className="flex gap-3 justify-center mt-8">
                     <button
                       onClick={resetQuiz}
-                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition"
+                      className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-bold transition-all duration-200 active:scale-95"
                     >
-                      🔄 New Quiz
+                      New Quiz
                     </button>
                     <button
                       onClick={() => { setActiveTab('progress'); loadProgress(); }}
-                      className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition"
+                      className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-semibold transition-all duration-200"
                     >
-                      📊 View Progress
+                      View Progress
                     </button>
                   </div>
                 </div>
 
                 {/* Detailed Results */}
                 <div className="space-y-3">
-                  {results.results.map((r: QuizResult, i: number) => (
-                    <div key={i} className={`bg-gray-900 border rounded-xl p-5 ${r.isCorrect ? 'border-green-800' : 'border-red-800'}`}>
+                  {(results.results as QuizResult[]).map((r, i) => (
+                    <div
+                      key={i}
+                      className={`bg-white border rounded-2xl p-5 shadow-sm ${
+                        r.isCorrect ? 'border-emerald-200' : 'border-rose-200'
+                      }`}
+                    >
                       <div className="flex items-start gap-3">
-                        <span className="text-xl mt-0.5">{r.isCorrect ? '✅' : '❌'}</span>
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                          r.isCorrect ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'
+                        }`}>
+                          {r.isCorrect ? <IconCheck /> : <IconX />}
+                        </div>
                         <div className="flex-1">
-                          <p className="text-white text-sm font-medium mb-2">{r.question}</p>
+                          <p className="text-gray-900 text-sm font-semibold mb-2">{r.question}</p>
                           {!r.isCorrect && (
-                            <p className="text-red-400 text-xs mb-1">
-                              Your answer: {String.fromCharCode(65 + r.userAnswer)}
+                            <p className="text-rose-500 text-xs mb-1">
+                              Your answer: <span className="font-bold">{String.fromCharCode(65 + r.userAnswer)}</span>
                             </p>
                           )}
-                          <p className="text-green-400 text-xs mb-2">
-                            Correct: {String.fromCharCode(65 + r.correctIndex)}
+                          <p className="text-emerald-600 text-xs mb-2 font-medium">
+                            Correct: <span className="font-bold">{String.fromCharCode(65 + r.correctIndex)}</span>
                           </p>
-                          <p className="text-gray-400 text-xs">{r.explanation}</p>
+                          <p className="text-gray-400 text-xs leading-relaxed">{r.explanation}</p>
                           {r.topic && (
-                            <span className="inline-block mt-2 text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded">{r.topic}</span>
+                            <span className="inline-block mt-2 text-xs bg-violet-50 text-violet-600 border border-violet-100 px-2.5 py-0.5 rounded-full font-medium">
+                              {r.topic}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -482,52 +593,50 @@ export default function AiStudyCoachPage() {
           </div>
         )}
 
-        {/* ==================== PROGRESS TAB ==================== */}
+        {/* ── PROGRESS TAB ── */}
         {activeTab === 'progress' && (
-          <div className="space-y-6">
+          <div className="space-y-5">
             {loadingProgress ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-500 mx-auto"></div>
+              <div className="flex items-center justify-center py-20">
+                <div className="w-10 h-10 border-2 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
               </div>
             ) : !progress ? (
-              <div className="text-center py-12 text-gray-500">No progress data yet. Take a quiz to get started!</div>
+              <div className="bg-white border border-gray-100 rounded-2xl p-16 text-center shadow-sm">
+                <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <IconChart />
+                </div>
+                <p className="text-gray-500 font-medium text-sm">No progress data yet</p>
+                <p className="text-gray-400 text-xs mt-1">Take a quiz to start tracking your mastery.</p>
+              </div>
             ) : (
               <>
-                {/* Stats Cards */}
+                {/* Stats */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 text-center">
-                    <div className="text-3xl font-bold text-white">{progress.totalDocuments}</div>
-                    <div className="text-gray-500 text-xs mt-1">Documents</div>
-                  </div>
-                  <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 text-center">
-                    <div className="text-3xl font-bold text-white">{progress.totalQuizzes}</div>
-                    <div className="text-gray-500 text-xs mt-1">Quizzes Taken</div>
-                  </div>
-                  <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 text-center">
-                    <div className="text-3xl font-bold text-indigo-400">{progress.averageScore}%</div>
-                    <div className="text-gray-500 text-xs mt-1">Avg Score</div>
-                  </div>
-                  <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 text-center">
-                    <div className="text-3xl font-bold text-yellow-400">{progress.dueForReview?.length || 0}</div>
-                    <div className="text-gray-500 text-xs mt-1">Due for Review</div>
-                  </div>
+                  {[
+                    { value: progress.totalDocuments as number, label: 'Documents', color: 'text-gray-900' },
+                    { value: progress.totalQuizzes as number, label: 'Quizzes Taken', color: 'text-gray-900' },
+                    { value: `${progress.averageScore as number}%`, label: 'Avg Score', color: 'text-violet-600' },
+                    { value: (progress.dueForReview as unknown[])?.length || 0, label: 'Due for Review', color: 'text-amber-500' },
+                  ].map((s) => (
+                    <div key={s.label} className="bg-white border border-gray-100 rounded-2xl p-5 text-center shadow-sm">
+                      <div className={`text-3xl font-extrabold ${s.color}`}>{s.value}</div>
+                      <div className="text-gray-400 text-xs mt-1 font-medium">{s.label}</div>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Due for Review */}
-                {progress.dueForReview?.length > 0 && (
-                  <div className="bg-gray-900 border border-yellow-800 rounded-xl p-6">
-                    <h2 className="text-lg font-semibold text-yellow-400 mb-3">⚠️ Topics Due for Review</h2>
+                {(progress.dueForReview as unknown[])?.length > 0 && (
+                  <div className="bg-white border border-amber-200 rounded-2xl p-6 shadow-sm">
+                    <h2 className="text-sm font-bold text-amber-600 uppercase tracking-widest mb-4">Due for Review</h2>
                     <div className="flex flex-wrap gap-2">
-                      {progress.dueForReview.map((t: any, i: number) => (
+                      {(progress.dueForReview as { topic: string; accuracy: number }[]).map((t, i) => (
                         <button
                           key={i}
-                          onClick={() => {
-                            setQuizTopic(t.topic);
-                            setActiveTab('quiz');
-                          }}
-                          className="bg-yellow-900/30 border border-yellow-800 text-yellow-300 px-3 py-1.5 rounded-lg text-sm hover:bg-yellow-900/50 transition"
+                          onClick={() => { setQuizTopic(t.topic); setActiveTab('quiz'); }}
+                          className="bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1.5 rounded-xl text-sm font-semibold hover:bg-amber-100 transition-all duration-150"
                         >
-                          {t.topic} ({t.accuracy}%)
+                          {t.topic} — {t.accuracy}%
                         </button>
                       ))}
                     </div>
@@ -535,18 +644,18 @@ export default function AiStudyCoachPage() {
                 )}
 
                 {/* Weak Topics */}
-                {progress.weakTopics?.length > 0 && (
-                  <div className="bg-gray-900 border border-red-800 rounded-xl p-6">
-                    <h2 className="text-lg font-semibold text-red-400 mb-3">🔴 Weak Topics (needs work)</h2>
-                    <div className="space-y-2">
-                      {progress.weakTopics.map((t: any, i: number) => (
-                        <div key={i} className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-2.5">
-                          <span className="text-white text-sm">{t.topic}</span>
+                {(progress.weakTopics as unknown[])?.length > 0 && (
+                  <div className="bg-white border border-rose-200 rounded-2xl p-6 shadow-sm">
+                    <h2 className="text-sm font-bold text-rose-500 uppercase tracking-widest mb-4">Needs Work</h2>
+                    <div className="space-y-2.5">
+                      {(progress.weakTopics as { topic: string; accuracy: number }[]).map((t, i) => (
+                        <div key={i} className="flex items-center justify-between">
+                          <span className="text-gray-700 text-sm font-medium">{t.topic}</span>
                           <div className="flex items-center gap-3">
-                            <div className="w-24 bg-gray-700 rounded-full h-2">
-                              <div className="bg-red-500 rounded-full h-2" style={{ width: `${t.accuracy}%` }}></div>
+                            <div className="w-28 bg-gray-100 rounded-full h-2">
+                              <div className="bg-rose-400 rounded-full h-2 transition-all" style={{ width: `${t.accuracy}%` }} />
                             </div>
-                            <span className="text-red-400 text-xs w-10 text-right">{t.accuracy}%</span>
+                            <span className="text-rose-500 text-xs font-bold w-10 text-right">{t.accuracy}%</span>
                           </div>
                         </div>
                       ))}
@@ -555,18 +664,18 @@ export default function AiStudyCoachPage() {
                 )}
 
                 {/* Strong Topics */}
-                {progress.strongTopics?.length > 0 && (
-                  <div className="bg-gray-900 border border-green-800 rounded-xl p-6">
-                    <h2 className="text-lg font-semibold text-green-400 mb-3">🟢 Strong Topics</h2>
-                    <div className="space-y-2">
-                      {progress.strongTopics.map((t: any, i: number) => (
-                        <div key={i} className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-2.5">
-                          <span className="text-white text-sm">{t.topic}</span>
+                {(progress.strongTopics as unknown[])?.length > 0 && (
+                  <div className="bg-white border border-emerald-200 rounded-2xl p-6 shadow-sm">
+                    <h2 className="text-sm font-bold text-emerald-600 uppercase tracking-widest mb-4">Strong Topics</h2>
+                    <div className="space-y-2.5">
+                      {(progress.strongTopics as { topic: string; accuracy: number }[]).map((t, i) => (
+                        <div key={i} className="flex items-center justify-between">
+                          <span className="text-gray-700 text-sm font-medium">{t.topic}</span>
                           <div className="flex items-center gap-3">
-                            <div className="w-24 bg-gray-700 rounded-full h-2">
-                              <div className="bg-green-500 rounded-full h-2" style={{ width: `${t.accuracy}%` }}></div>
+                            <div className="w-28 bg-gray-100 rounded-full h-2">
+                              <div className="bg-emerald-400 rounded-full h-2 transition-all" style={{ width: `${t.accuracy}%` }} />
                             </div>
-                            <span className="text-green-400 text-xs w-10 text-right">{t.accuracy}%</span>
+                            <span className="text-emerald-600 text-xs font-bold w-10 text-right">{t.accuracy}%</span>
                           </div>
                         </div>
                       ))}
@@ -575,20 +684,19 @@ export default function AiStudyCoachPage() {
                 )}
 
                 {/* Recent Quizzes */}
-                {progress.recentQuizzes?.length > 0 && (
-                  <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-                    <h2 className="text-lg font-semibold text-white mb-3">Recent Quizzes</h2>
+                {(progress.recentQuizzes as unknown[])?.length > 0 && (
+                  <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+                    <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">Recent Quizzes</h2>
                     <div className="space-y-2">
-                      {progress.recentQuizzes.map((q: any) => (
-                        <div key={q.id} className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3">
+                      {(progress.recentQuizzes as { id: string; topic: string; createdAt: string; score: number; totalQuestions: number }[]).map((q) => (
+                        <div key={q.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
                           <div>
-                            <p className="text-white text-sm">{q.topic || 'General'}</p>
-                            <p className="text-gray-500 text-xs">{new Date(q.createdAt).toLocaleDateString()}</p>
+                            <p className="text-gray-900 text-sm font-semibold">{q.topic || 'General'}</p>
+                            <p className="text-gray-400 text-xs mt-0.5">{new Date(q.createdAt).toLocaleDateString()}</p>
                           </div>
-                          <span className={`text-sm font-bold ${
-                            (q.score / q.totalQuestions) >= 0.8 ? 'text-green-400' :
-                            (q.score / q.totalQuestions) >= 0.5 ? 'text-yellow-400' :
-                            'text-red-400'
+                          <span className={`text-sm font-extrabold ${
+                            (q.score / q.totalQuestions) >= 0.8 ? 'text-emerald-500' :
+                            (q.score / q.totalQuestions) >= 0.5 ? 'text-amber-500' : 'text-rose-500'
                           }`}>
                             {q.score}/{q.totalQuestions}
                           </span>
@@ -601,6 +709,7 @@ export default function AiStudyCoachPage() {
             )}
           </div>
         )}
+
       </div>
     </div>
   );
