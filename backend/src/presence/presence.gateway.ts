@@ -6,6 +6,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { RedisService } from '../common/redis.service';
+import { PrismaService } from '../common/prisma.service';
 
 @WebSocketGateway({
   cors: {
@@ -19,9 +20,11 @@ export class PresenceGateway
   @WebSocketServer()
   server: Server;
 
-  constructor(private redis: RedisService) {}
+  constructor(
+    private redis: RedisService,
+    private prisma: PrismaService,
+  ) {}
 
-  // Called when a client connects via WebSocket
   async handleConnection(client: Socket) {
     const userId = client.handshake.query.userId as string;
 
@@ -30,10 +33,8 @@ export class PresenceGateway
       return;
     }
 
-    // Store user in client data for later use
     client.data.userId = userId;
 
-    // Store presence in Redis (Section 4.1.3 — Redis Key Structure)
     await this.redis.set(
       `presence:${userId}`,
       JSON.stringify({
@@ -43,23 +44,18 @@ export class PresenceGateway
         lastSeen: Date.now(),
       }),
     );
-    // Set TTL of 60 seconds (refreshed by heartbeat)
     await this.redis.expire(`presence:${userId}`, 60);
 
-    // Broadcast to all clients that this user is online
     this.server.emit('presence:online', { userId, status: 'online' });
 
     console.log(`🟢 User connected: ${userId}`);
   }
 
-  // Called when a client disconnects
   async handleDisconnect(client: Socket) {
     const userId = client.data.userId;
 
     if (!userId) return;
 
-    // 30-second grace period (Section 4.1.3 — Disconnect Handling)
-    // Set a short TTL instead of deleting immediately
     await this.redis.expire(`presence:${userId}`, 30);
 
     // Clean up room membership if user was in a room
@@ -68,11 +64,24 @@ export class PresenceGateway
       await this.redis.srem(`room:members:${roomId}`, userId);
       await this.redis.del(`user:room:${userId}`);
 
-      // Notify room members
-      this.server.to(roomId).emit('room:user_left', { userId });
+      // Get user info for the broadcast
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, name: true, avatar: true },
+      });
+
+      // Broadcast with user object (not just userId)
+      this.server.to(roomId).emit('room:user_left', { user: user || { id: userId, name: 'Unknown', avatar: null } });
+
+      // Send updated member list to remaining members
+      const memberIds = await this.redis.smembers(`room:members:${roomId}`);
+      const members = await this.prisma.user.findMany({
+        where: { id: { in: memberIds } },
+        select: { id: true, name: true, avatar: true },
+      });
+      this.server.to(roomId).emit('room:members', { members });
     }
 
-    // Broadcast offline after grace period
     setTimeout(async () => {
       const presence = await this.redis.get(`presence:${userId}`);
       if (!presence) {
@@ -82,16 +91,12 @@ export class PresenceGateway
     }, 30000);
   }
 
-  // Heartbeat — called by client every 30 seconds to stay "online"
   async handleHeartbeat(client: Socket) {
     const userId = client.data.userId;
     if (!userId) return;
-
-    // Refresh TTL
     await this.redis.expire(`presence:${userId}`, 60);
   }
 
-  // Update user status (online/studying/away)
   async updateStatus(userId: string, status: string, roomId?: string) {
     await this.redis.set(
       `presence:${userId}`,
@@ -106,7 +111,6 @@ export class PresenceGateway
     this.server.emit('presence:online', { userId, status });
   }
 
-  // Get all online users
   async getOnlineUsers(): Promise<string[]> {
     const keys = await this.redis.keys('presence:*');
     return keys.map((key) => key.replace('presence:', ''));
