@@ -245,6 +245,7 @@ export default function RoomViewPage() {
             alt={msg.fileName || 'Image'}
             className="max-w-xs rounded-xl cursor-pointer hover:opacity-90 transition"
             onClick={() => window.open(`${API_URL}${msg.fileUrl}`, '_blank')}
+            referrerPolicy="no-referrer"
           />
         </div>
       )}
@@ -404,7 +405,7 @@ export default function RoomViewPage() {
                 {members.map((member) => (
                   <div key={member.id} className="flex items-center gap-3">
                     {member.avatar ? (
-                      <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full object-cover" />
+                      <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer"/>
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 text-sm font-bold">
                         {member.name.charAt(0).toUpperCase()}
@@ -453,7 +454,7 @@ export default function RoomViewPage() {
                       {!isMe && (
                         <div className="flex-shrink-0">
                           {msg.user.avatar ? (
-                            <img src={msg.user.avatar} alt={msg.user.name} className="w-8 h-8 rounded-full object-cover" />
+                            <img src={msg.user.avatar} alt={msg.user.name} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer"/>
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 text-sm font-bold">
                               {msg.user.name.charAt(0).toUpperCase()}
