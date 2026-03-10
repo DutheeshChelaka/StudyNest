@@ -32,8 +32,7 @@ export class RoomsGateway {
   @SubscribeMessage('room:join')
   async handleJoinRoom(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { roomId: string },
-  ) {
+@MessageBody() payload: { roomId: string; password?: string },  ) {
     const userId = client.data.userId;
     if (!userId || !payload.roomId) return;
 
@@ -47,9 +46,19 @@ export class RoomsGateway {
 
     // Check capacity
     const memberCount = await this.redis.scard(`room:members:${roomId}`);
-    if (Number(memberCount) >= room.maxCapacity) {
-      client.emit('room:error', { message: 'Room is full' });
-      return;
+    // Check password for private rooms
+    if (!room.isPublic && room.password) {
+      const password = payload.password;
+      if (!password) {
+        client.emit('room:error', { message: 'Password required' });
+        return;
+      }
+      const bcrypt = require('bcrypt');
+      const isValid = await bcrypt.compare(password, room.password);
+      if (!isValid) {
+        client.emit('room:error', { message: 'Incorrect password' });
+        return;
+      }
     }
 
     // Join the Socket.io room (for broadcasting)
