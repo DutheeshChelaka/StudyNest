@@ -101,6 +101,7 @@ export default function Navbar() {
                     src={user.avatar}
                     alt={user.name}
                     className="w-8 h-8 rounded-full object-cover"
+                    referrerPolicy="no-referrer"
                   />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 text-sm font-bold">
