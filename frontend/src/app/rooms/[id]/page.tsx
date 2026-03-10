@@ -70,6 +70,79 @@ function IconSmile() {
   );
 }
 
+function IconLock() {
+  return (
+    <svg className="w-5 h-5 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    </svg>
+  );
+}
+
+// ─── Password Modal Component ─────────────────────────────────────────────────
+function PasswordModal({
+  onSubmit,
+  onCancel,
+  error,
+}: {
+  onSubmit: (pwd: string) => void;
+  onCancel: () => void;
+  error?: string;
+}) {
+  const [value, setValue] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (value.trim()) onSubmit(value.trim());
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm mx-4 border border-gray-100">
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-12 h-12 bg-violet-100 rounded-2xl flex items-center justify-center mb-3">
+            <IconLock />
+          </div>
+          <h2 className="text-lg font-bold text-gray-900">Private Room</h2>
+          <p className="text-gray-400 text-sm mt-1 text-center">Enter the room password to join</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            autoFocus
+            type="password"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="Room password"
+            className="w-full bg-gray-100 border border-transparent rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-violet-300 transition-all duration-200"
+          />
+
+          {error && (
+            <p className="text-rose-500 text-xs text-center font-medium">{error}</p>
+          )}
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-all duration-200"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!value.trim()}
+              className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:bg-gray-200 disabled:cursor-not-allowed text-white text-sm font-semibold transition-all duration-200"
+            >
+              Join Room
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function RoomViewPage() {
   const params = useParams();
   const router = useRouter();
@@ -84,19 +157,51 @@ export default function RoomViewPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [activeReactionMsg, setActiveReactionMsg] = useState<string | null>(null);
+
+  // Password modal state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [pendingRoomData, setPendingRoomData] = useState<any>(null);
+
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useSocket();
 
+  // ── Step 1: Load room only after user is confirmed ──────────────────────────
   useEffect(() => {
+    // Wait until auth is ready
+    if (!user) return;
+
     const init = async () => {
       try {
         const roomData = await api.getRoom(roomId);
         setRoom(roomData);
         setCurrentRoom(roomData);
+        setPendingRoomData(roomData);
+
         const socket = getSocket();
-        if (socket) socket.emit('room:join', { roomId });
+        if (!socket) return;
+
+        // Listen for room errors
+        socket.on('room:error', (data: any) => {
+          // If wrong password, show modal again with error
+          if (data.message?.toLowerCase().includes('password')) {
+            setPasswordError(data.message);
+            setShowPasswordModal(true);
+          } else {
+            alert(data.message);
+            router.push('/rooms');
+          }
+        });
+
+        // Private room and not the owner → show password modal
+        if (!roomData.isPublic && roomData.password && roomData.ownerId !== user?.id) {
+          setShowPasswordModal(true);
+        } else {
+          // Public room or owner → join directly
+          socket.emit('room:join', { roomId });
+        }
       } catch (error) {
         console.error('Failed to load room:', error);
         router.push('/rooms');
@@ -104,14 +209,33 @@ export default function RoomViewPage() {
         setLoading(false);
       }
     };
+
     init();
+
     return () => {
       const socket = getSocket();
-      if (socket) socket.emit('room:leave', { roomId });
+      if (socket) {
+        socket.off('room:error');
+        socket.emit('room:leave', { roomId });
+      }
       clearRoom();
       clearTimer();
     };
-  }, [roomId]);
+  }, [roomId, user]); // ← user in dependency array — waits for auth
+
+  // ── Step 2: Handle password modal submission ────────────────────────────────
+  const handlePasswordSubmit = (pwd: string) => {
+    const socket = getSocket();
+    if (!socket) return;
+    setPasswordError('');
+    setShowPasswordModal(false);
+    socket.emit('room:join', { roomId, password: pwd });
+  };
+
+  const handlePasswordCancel = () => {
+    setShowPasswordModal(false);
+    router.push('/rooms');
+  };
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -213,21 +337,23 @@ export default function RoomViewPage() {
     document.body.removeChild(link);
   };
 
-  const timerPhaseColor = timer?.phase === 'focus'
-    ? 'text-rose-500'
-    : timer?.phase === 'short_break'
-    ? 'text-emerald-500'
-    : timer?.phase === 'long_break'
-    ? 'text-blue-500'
-    : 'text-gray-400';
+  const timerPhaseColor =
+    timer?.phase === 'focus'
+      ? 'text-rose-500'
+      : timer?.phase === 'short_break'
+      ? 'text-emerald-500'
+      : timer?.phase === 'long_break'
+      ? 'text-blue-500'
+      : 'text-gray-400';
 
-  const timerPhaseLabel = timer?.phase === 'focus'
-    ? 'Focus Time'
-    : timer?.phase === 'short_break'
-    ? 'Short Break'
-    : timer?.phase === 'long_break'
-    ? 'Long Break'
-    : 'Ready';
+  const timerPhaseLabel =
+    timer?.phase === 'focus'
+      ? 'Focus Time'
+      : timer?.phase === 'short_break'
+      ? 'Short Break'
+      : timer?.phase === 'long_break'
+      ? 'Long Break'
+      : 'Ready';
 
   const timerProgress = timer
     ? ((timer.phase === 'focus' ? 1500 : timer.phase === 'short_break' ? 300 : 900) - timer.remaining) /
@@ -285,9 +411,16 @@ export default function RoomViewPage() {
     <div className="min-h-screen bg-[#FAFAFA]">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Password Modal */}
+      {showPasswordModal && (
+        <PasswordModal
+          onSubmit={handlePasswordSubmit}
+          onCancel={handlePasswordCancel}
+          error={passwordError}
+        />
+      )}
 
-        {/* Page Header */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">{room?.name}</h1>
@@ -298,6 +431,7 @@ export default function RoomViewPage() {
               {room?.educationLevel === 'SCHOOL' && ` · Grade ${room.grade}`}
               {room?.educationLevel === 'AL' && ` · A/L ${room.stream || ''}`}
               {room?.educationLevel === 'UNI' && ' · University'}
+              {!room?.isPublic && ' · 🔒 Private'}
             </p>
           </div>
           <button
@@ -310,15 +444,11 @@ export default function RoomViewPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
-
-          {/* Sidebar */}
+          {/* Left sidebar */}
           <div className="lg:col-span-1 space-y-4">
-
-            {/* Timer Card */}
             <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
               <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-5 text-center">Pomodoro Timer</h2>
 
-              {/* Circular progress */}
               <div className="relative flex items-center justify-center mb-5">
                 <svg className="w-36 h-36 -rotate-90" viewBox="0 0 120 120">
                   <circle cx="60" cy="60" r="50" fill="none" stroke="#F3F4F6" strokeWidth="8" />
@@ -352,42 +482,17 @@ export default function RoomViewPage() {
                   {!timer || !timer.isRunning ? (
                     <div className="space-y-2">
                       <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => startTimer(1500)}
-                          className="bg-violet-600 hover:bg-violet-700 text-white py-2 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95"
-                        >
-                          25 min
-                        </button>
-                        <button
-                          onClick={() => startTimer(3000)}
-                          className="bg-violet-600 hover:bg-violet-700 text-white py-2 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95"
-                        >
-                          50 min
-                        </button>
+                        <button onClick={() => startTimer(1500)} className="bg-violet-600 hover:bg-violet-700 text-white py-2 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95">25 min</button>
+                        <button onClick={() => startTimer(3000)} className="bg-violet-600 hover:bg-violet-700 text-white py-2 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95">50 min</button>
                       </div>
                       {timer && !timer.isRunning && (
-                        <button
-                          onClick={resumeTimer}
-                          className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95"
-                        >
-                          Resume
-                        </button>
+                        <button onClick={resumeTimer} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95">Resume</button>
                       )}
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={pauseTimer}
-                        className="bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95"
-                      >
-                        Pause
-                      </button>
-                      <button
-                        onClick={resetTimer}
-                        className="bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95"
-                      >
-                        Reset
-                      </button>
+                      <button onClick={pauseTimer} className="bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95">Pause</button>
+                      <button onClick={resetTimer} className="bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95">Reset</button>
                     </div>
                   )}
                 </div>
@@ -396,16 +501,13 @@ export default function RoomViewPage() {
               )}
             </div>
 
-            {/* Members Card */}
             <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-              <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">
-                Members ({members.length})
-              </h2>
+              <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">Members ({members.length})</h2>
               <div className="space-y-3">
                 {members.map((member) => (
                   <div key={member.id} className="flex items-center gap-3">
                     {member.avatar ? (
-                      <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer"/>
+                      <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 text-sm font-bold">
                         {member.name.charAt(0).toUpperCase()}
@@ -422,19 +524,15 @@ export default function RoomViewPage() {
                 ))}
               </div>
             </div>
-
           </div>
 
-          {/* Chat Panel */}
+          {/* Chat area */}
           <div className="lg:col-span-3 bg-white border border-gray-100 rounded-2xl shadow-sm flex flex-col h-[calc(100vh-220px)]">
-
-            {/* Chat Header */}
             <div className="px-6 py-4 border-b border-gray-100">
               <h2 className="text-base font-bold text-gray-900">Chat</h2>
               <p className="text-xs text-gray-400">Share notes, ask questions, react to messages</p>
             </div>
 
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
@@ -453,11 +551,11 @@ export default function RoomViewPage() {
                     <div key={msg.id} className={`flex gap-3 ${isMe ? 'justify-end' : ''}`}>
                       {!isMe && (
                         <div className="flex-shrink-0">
-                          {msg.user.avatar ? (
-                            <img src={msg.user.avatar} alt={msg.user.name} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer"/>
+                          {msg.user?.avatar ? (
+                            <img src={msg.user.avatar} alt={msg.user.name} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 text-sm font-bold">
-                              {msg.user.name.charAt(0).toUpperCase()}
+                              {msg.user?.name?.charAt(0)?.toUpperCase() || '?'}
                             </div>
                           )}
                         </div>
@@ -465,7 +563,7 @@ export default function RoomViewPage() {
 
                       <div className={`max-w-[70%] ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
                         {!isMe && (
-                          <span className="text-gray-400 text-xs mb-1 ml-1">{msg.user.name}</span>
+                          <span className="text-gray-400 text-xs mb-1 ml-1">{msg.user?.name || 'Unknown'}</span>
                         )}
 
                         <div className="relative group">
@@ -505,7 +603,7 @@ export default function RoomViewPage() {
                               msg.reactions.reduce((acc: Record<string, { count: number; users: string[] }>, r) => {
                                 if (!acc[r.emoji]) acc[r.emoji] = { count: 0, users: [] };
                                 acc[r.emoji].count++;
-                                acc[r.emoji].users.push(r.user.name);
+                                acc[r.emoji].users.push(r.user?.name || 'Unknown');
                                 return acc;
                               }, {}),
                             ).map(([emoji, data]) => (
@@ -548,7 +646,6 @@ export default function RoomViewPage() {
               <div ref={chatEndRef} />
             </div>
 
-            {/* Input */}
             <div className="px-5 py-4 border-t border-gray-100">
               {uploading && (
                 <div className="flex items-center gap-2 text-violet-500 text-xs mb-2">
@@ -592,7 +689,6 @@ export default function RoomViewPage() {
                 </button>
               </div>
             </div>
-
           </div>
         </div>
       </div>
