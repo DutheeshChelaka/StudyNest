@@ -59,7 +59,7 @@ export class RoomsService {
     const limit = query.limit || 10;
     const skip = (page - 1) * limit;
 
-    const where: any = { isPublic: true };
+    const where: any = {};
 
     if (query.subject) where.subject = query.subject;
     if (query.educationLevel) where.educationLevel = query.educationLevel;
